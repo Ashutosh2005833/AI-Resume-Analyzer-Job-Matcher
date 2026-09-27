@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Resume Analyzer & Job Matcher</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6ff;
+            color: #1f2937;
+        }
+
+        .main {
+            width: 92%;
+            max-width: 1100px;
+            margin: 40px auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4338ca;
+            font-size: 42px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 35px;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 18px;
+            margin-bottom: 22px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.07);
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 14px 0 8px;
+        }
+
+        input[type="file"],
+        textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        button {
+            background: #4338ca;
+            color: white;
+            border: none;
+            padding: 13px 22px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-right: 8px;
+        }
+
+        button:hover {
+            background: #3730a3;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 18px;
+            font-weight: bold;
+        }
+
+        .score {
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 58px;
+            font-weight: bold;
+            color: #4338ca;
+        }
+
+        .progress {
+            height: 16px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #4338ca;
+            transition: width 0.4s;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+        }
+
+        .skill-card {
+            background: white;
+            padding: 22px;
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(0,0,0,.06);
+        }
+
+        .skill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .skill {
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .matched {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .missing {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .required {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .extra {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .ai-text,
+        #resumeDraft {
+            white-space: pre-wrap;
+            line-height: 1.7;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .note {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 30px;
+            }
+
+            .main {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="main">
+
+    <h1>AI Resume Analyzer</h1>
+
+    <p class="subtitle">
+        Resume ko Job / Internship Description se compare karo.
+    </p>
+
+    <div class="card">
+
+        <label>1. Upload Resume PDF</label>
+
+        <input
+                type="file"
+                id="resumeFile"
+                accept=".pdf,application/pdf"
+        >
+
+        <label>2. Paste Job / Internship Description</label>
+
+        <textarea
+                id="jobDescription"
+                placeholder="Yahan complete job ya internship description paste karo..."
+        ></textarea>
+
+        <button
+                id="analyzeButton"
+                onclick="analyzeResume()"
+        >
+            Analyze & Match Resume
+        </button>
+
+        <div id="status"></div>
+
+        <p class="note">
+            Match score skill keywords ke basis par estimate hai.
+            Ye recruiter ya ATS ka official score nahi hai.
+        </p>
+
+    </div>
+
+
+    <div id="results" class="hidden">
+
+        <div class="card score">
+
+            <h2>Resume Match Score</h2>
+
+            <div
+                    id="scoreNumber"
+                    class="score-number"
+            >
+                0%
+            </div>
+
+            <div class="progress">
+                <div
+                        id="progressBar"
+                        class="progress-bar"
+                ></div>
+            </div>
+
+        </div>
+
+
+        <div class="grid">
+
+            <div class="skill-card">
+
+                <h3>✅ Matched Skills</h3>
+
+                <div
+                        id="matchedSkills"
+                        class="skill-list"
+                ></div>
+
+            </div>
+
+
+            <div class="skill-card">
+
+                <h3>❌ Missing Required Skills</h3>
+
+                <div
+                        id="missingSkills"
+                        class="skill-list"
+                ></div>
+
+            </div>
+
+
+            <div class="skill-card">
+
+                <h3>📋 Job Required Skills</h3>
+
+                <div
+                        id="requiredSkills"
+                        class="skill-list"
+                ></div>
+
+            </div>
+
+
+            <div class="skill-card">
+
+                <h3>➕ Extra / Less Relevant Skills</h3>
+
+                <div
+                        id="extraSkills"
+                        class="skill-list"
+                ></div>
+
+                <p class="note">
+                    In skills ko automatically remove mat karo.
+                    Agar relevant hain to keep karo.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>🤖 AI Resume Improvement Suggestions</h2>
+
+            <div
+                    id="aiSuggestions"
+                    class="ai-text"
+            >
+                AI analysis yahan dikhega.
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>Job-Specific Resume Draft</h2>
+
+            <p class="note">
+                Draft sirf uploaded resume me already available
+                information ko use karega.
+            </p>
+
+            <button
+                    id="generateButton"
+                    onclick="showTailoredResume()"
+            >
+                Generate Tailored Resume
+            </button>
+
+            <button onclick="copyResume()">
+                Copy Resume
+            </button>
+
+            <button onclick="printResume()">
+                Save / Print as PDF
+            </button>
+
+            <div
+                    id="resumeDraft"
+                    class="hidden"
+            ></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    let latestTailoredResume = "";
+    let latestResumeText = "";
+
+
+    function showSkills(elementId, skills, type) {
+
+        const container =
+            document.getElementById(elementId);
+
+        container.innerHTML = "";
+
+
+        if (!Array.isArray(skills) || skills.length === 0) {
+
+            container.innerHTML =
+                "<span>No skills detected</span>";
+
+            return;
+        }
+
+
+        skills.forEach(skill => {
+
+            const span =
+                document.createElement("span");
+
+            span.className =
+                "skill " + type;
+
+            span.textContent =
+                skill;
+
+            container.appendChild(span);
+
+        });
+
+    }
+
+
+    async function analyzeResume() {
+
+        const file =
+            document.getElementById("resumeFile").files[0];
+
+        const jobDescription =
+            document.getElementById("jobDescription").value.trim();
+
+        const status =
+            document.getElementById("status");
+
+        const button =
+            document.getElementById("analyzeButton");
+
+
+        if (!file) {
+
+            status.innerHTML =
+                "❌ Please select your resume PDF first.";
+
+            return;
+        }
+
+
+        if (!jobDescription) {
+
+            status.innerHTML =
+                "❌ Please paste Job / Internship Description.";
+
+            return;
+        }
+
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "resume",
+            file
+        );
+
+        formData.append(
+            "jobDescription",
+            jobDescription
+        );
+
+
+        try {
+
+            button.disabled = true;
+
+            button.textContent =
+                "Analyzing...";
+
+            status.innerHTML =
+                "⏳ Resume analyze ho raha hai...";
+
+
+            const response =
+                await fetch(
+                    "/analyze",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "Analysis failed."
+                );
+            }
+
+
+            status.innerHTML =
+                "✅ Analysis completed successfully!";
+
+
+            document
+                .getElementById("results")
+                .classList
+                .remove("hidden");
+
+
+            const score =
+                Number(data.matchPercentage) || 0;
+
+
+            document.getElementById(
+                "scoreNumber"
+            ).textContent =
+                score + "%";
+
+
+            document.getElementById(
+                "progressBar"
+            ).style.width =
+                score + "%";
+
+
+            showSkills(
+                "matchedSkills",
+                data.matchedSkills,
+                "matched"
+            );
+
+
+            showSkills(
+                "missingSkills",
+                data.missingSkills,
+                "missing"
+            );
+
+
+            showSkills(
+                "requiredSkills",
+                data.requiredSkills,
+                "required"
+            );
+
+
+            showSkills(
+                "extraSkills",
+                data.extraSkills,
+                "extra"
+            );
+
+
+            const suggestionBox =
+                document.getElementById(
+                    "aiSuggestions"
+                );
+
+
+            if (
+                data.aiAnalysis &&
+                data.aiAnalysis.trim()
+            ) {
+
+                suggestionBox.textContent =
+                    data.aiAnalysis;
+
+            } else {
+
+                const matched =
+                    data.matchedSkills || [];
+
+                const missing =
+                    data.missingSkills || [];
+
+                const extra =
+                    data.extraSkills || [];
+
+
+                let fallback = "";
+
+                fallback +=
+                    "MATCHED SKILLS\n";
+
+                fallback +=
+                    matched.length
+                        ? matched.join(", ")
+                        : "No matched skills detected";
+
+
+                fallback +=
+                    "\n\nMISSING SKILLS\n";
+
+                fallback +=
+                    missing.length
+                        ? missing.join(", ")
+                        : "No major missing skills detected";
+
+
+                fallback +=
+                    "\n\nSUGGESTION\n";
+
+                if (missing.length) {
+
+                    fallback +=
+                        "Missing skills ko seekhne ya project me use karne ke baad hi resume me add karein.";
+
+                } else {
+
+                    fallback +=
+                        "Relevant matched skills ko Skills aur Projects section me clearly highlight karein.";
+                }
+
+
+                if (extra.length) {
+
+                    fallback +=
+                        "\n\nLESS RELEVANT SKILLS\n" +
+                        extra.join(", ") +
+                        "\nInhe automatically remove mat karein. Space kam ho to less relevant skills ko de-emphasize karein.";
+                }
+
+
+                suggestionBox.textContent =
+                    fallback;
+            }
+
+
+            latestTailoredResume =
+                data.tailoredResume || "";
+
+            latestResumeText =
+                data.resumeText || "";
+
+
+            const draft =
+                document.getElementById(
+                    "resumeDraft"
+                );
+
+            draft.textContent = "";
+
+            draft.classList.add("hidden");
+
+
+            window.scrollTo({
+                top:
+                    document
+                        .getElementById("results")
+                        .offsetTop - 20,
+
+                behavior: "smooth"
+            });
+
+        }
+
+        catch (error) {
+
+            status.innerHTML =
+                "❌ " + error.message;
+
+        }
+
+        finally {
+
+            button.disabled = false;
+
+            button.textContent =
+                "Analyze & Match Resume";
+
+        }
+
+    }
+
+
+    function showTailoredResume() {
+
+        const draft =
+            document.getElementById(
+                "resumeDraft"
+            );
+
+
+        if (latestTailoredResume.trim()) {
+
+            draft.textContent =
+                latestTailoredResume;
+
+        }
+
+        else {
+
+            draft.textContent =
+                "AI tailored resume abhi available nahi hai. " +
+                "Analyze & Match Resume button dobara try karein. " +
+                "Agar Gemini temporarily busy hai to thodi der baad retry karein.";
+
+        }
+
+
+        draft.classList.remove(
+            "hidden"
+        );
+
+
+        draft.scrollIntoView({
+            behavior: "smooth"
+        });
+
+    }
+
+
+    async function copyResume() {
+
+        if (!latestTailoredResume.trim()) {
+
+            alert(
+                "Pehle tailored resume generate karein."
+            );
+
+            return;
+        }
+
+
+        try {
+
+            await navigator.clipboard.writeText(
+                latestTailoredResume
+            );
+
+            alert(
+                "Resume copied successfully!"
+            );
+
+        }
+
+        catch (error) {
+
+            alert(
+                "Copy nahi hua. Resume text manually select karke copy karein."
+            );
+
+        }
+
+    }
+
+
+    function escapeHTML(text) {
+
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    function printResume() {
+
+        if (!latestTailoredResume.trim()) {
+
+            alert(
+                "Pehle tailored resume generate karein."
+            );
+
+            return;
+        }
+
+
+        const printWindow =
+            window.open(
+                "",
+                "_blank"
+            );
+
+
+        const safeResume =
+            escapeHTML(
+                latestTailoredResume
+            );
+
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Tailored Resume</title>
+
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        max-width: 850px;
+                        margin: 40px auto;
+                        padding: 20px;
+                        line-height: 1.6;
+                    }
+
+                    pre {
+                        white-space: pre-wrap;
+                        font-family: Arial, sans-serif;
+                    }
+
+                    @media print {
+                        body {
+                            margin: 0;
+                        }
+                    }
+                </style>
+
+            </head>
+
+            <body>
+
+                <pre>${safeResume}</pre>
+
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    };
+                <\/script>
+
+            </body>
+
+            </html>
+        `);
+
+
+        printWindow.document.close();
+
+    }
+
+</script>
+
+</body>
+</html>
