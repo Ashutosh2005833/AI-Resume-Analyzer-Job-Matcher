@@ -1,0 +1,29 @@
+{
+  "name": "ai-resume-analyzer-job-matcher",
+  "version": "1.4.0",
+  "description": "AI Resume Analyzer & Job Matcher with PDF upload, skill matching and Gemini-powered tailoring using the official Google Gen AI SDK",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js",
+    "gemini:test": "node scripts/test-gemini.js",
+    "auth:selftest": "node scripts/test-auth-header.js"
+  },
+  "keywords": [
+    "resume",
+    "ats",
+    "gemini",
+    "job-matcher"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^18.0.4",
+    "express": "^5.2.1",
+    "multer": "^2.4.0",
+    "pdf-parse": "^2.4.5",
+    "@google/genai": "2.24.0"
+  }
+}
